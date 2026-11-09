@@ -1,9 +1,9 @@
 <!doctype html>
 <html lang="en">
  <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  
+
 <title>Abrar's Watched</title>
- 
+
 <style>
 :root{--g:rgba(120,120,125,.4)}
 *{box-sizing:border-box}
@@ -22,31 +22,41 @@ h2{font-size:12px;margin:22px 0 6px;opacity:.65;font-weight:500}
 #S{position:fixed;top:12px;left:50%;transform:translateX(-50%);width:max(200px,min(420px,calc(100% - 660px)));z-index:6}
 #S input{width:100%;padding:10px 14px;border-radius:12px;border:0;background:var(--g);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);color:#fff;font:inherit;outline:0}
 #S input::placeholder{color:#ddd}
-#res{margin-top:4px;border-radius:12px;background:rgba(90,90,95,.75);backdrop-filter:blur(14px);max-height:60vh;overflow:auto}
+#res{margin-top:4px;border-radius:12px;background:rgba(90,90,95,.75);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);max-height:60vh;overflow:auto}
 #res h2{margin:8px 14px 2px}
 #res .r{padding:5px 14px}
-#B{position:fixed;left:315px;bottom:12px;z-index:5;padding:9px 14px;border:0;border-radius:10px;background:var(--g);backdrop-filter:blur(14px);color:#fff;font:inherit;cursor:pointer}
-.lb{position:fixed;left:0;top:0;font-size:11px;white-space:nowrap;pointer-events:none}
+#B{position:fixed;left:315px;bottom:12px;z-index:5;padding:9px 14px;border:0;border-radius:10px;background:var(--g);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);color:#fff;font:inherit;cursor:pointer}
+.lb{position:fixed;left:0;top:0;font-size:11px;white-space:nowrap;pointer-events:none;text-shadow:0 0 4px #000,0 0 2px #000}
 .ly{font-size:13px;font-weight:600}
+@media (max-width:900px){
+ #S{width:calc(100% - 24px)}
+ .p{top:58px;width:min(300px,calc(50% - 10px));padding:14px}
+ #R{max-height:calc(100% - 63px)}
+ #B{left:50%;transform:translateX(-50%)}
+}
 </style>
 </head>
- 
+
 <body>
 <div id="L" class="p"></div><div id="R" class="p"></div>
 <div id="S"><input id="q" autocomplete="off"><div id="res"></div></div>
 <button id="B">Recalibrate</button><div id="lbs"></div>
- 
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
- 
+
 <script>
 // ---- edit these ----
 const CFG={title:"Abrar's Watched",quote:"Was never meant to be a cinephile but watched too many films anyways.",ph:"Search films, directors, cast, languages",file:"watched.csv"};
 // --------------------
+document.title=CFG.title;
 const esc=s=>String(s).replace(/[&<>"]/g,c=>'&#'+c.charCodeAt(0)+';');
 const nm=s=>(s||'').trim().replace(/\s+/g,' '),key=s=>nm(s).toLowerCase();
 const nz=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 function csv(t){const R=[];let r=[],c='',q=0;for(let i=0;i<t.length;i++){const h=t[i];if(q){if(h=='"'){if(t[i+1]=='"'){c+='"';i++}else q=0}else c+=h}else if(h=='"')q=1;else if(h==','){r.push(c);c=''}else if(h=='\n'||h=='\r'){if(h=='\r'&&t[i+1]=='\n')i++;r.push(c);c='';R.push(r);r=[]}else c+=h}if(c||r.length){r.push(c);R.push(r)}return R.filter(x=>x.join('').trim())}
-function pd(s){s=(s||'').trim();let m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);if(m)return{y:m[3],n:+m[3]*1e4+m[2]*100+ +m[1]};m=s.match(/^\d{4}$/);return m?{y:s,n:+s*1e4}:null}
+function pd(s){s=(s||'').trim();
+ let m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);if(m)return{y:m[3],n:+m[3]*1e4+m[2]*100+ +m[1]};      // dd/mm/yyyy
+ m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);if(m)return{y:m[1],n:+m[1]*1e4+m[2]*100+ +m[3]};            // yyyy-mm-dd
+ m=s.match(/^\d{4}$/);return m?{y:s,n:+s*1e4}:null}                                                    // yyyy
 const rank=(a,c,f)=>{a=[...a].sort((x,y)=>c(y)-c(x)||f(x).localeCompare(f(y)));const t=a[2]?c(a[2]):0;return a.filter(x=>c(x)>=t)};
 const $=id=>document.getElementById(id);$('q').placeholder=CFG.ph;
 
@@ -56,7 +66,10 @@ fetch(CFG.file)
  .catch(err=>{console.error(err);$('L').innerHTML='<h1>Could not load</h1>'+esc(String(err.message||err))+'<br><br>Expected <b>'+esc(CFG.file)+'</b> next to index.html, served over http(s).'});
 
 function init(txt){
-const R0=csv(txt.replace(/^\uFEFF/,'')),hd=R0[0].map(h=>h.trim().toLowerCase()),ix=h=>hd.indexOf(h);
+const R0=csv(txt.replace(/^\uFEFF/,''));
+if(!R0.length)throw new Error('The CSV file is empty');
+const hd=R0[0].map(h=>h.trim().toLowerCase()),ix=h=>hd.indexOf(h);
+if(ix('title')<0)throw new Error('No "title" column found. Columns seen: '+hd.join(' | '));
 const N=[],M=[new Map,new Map,new Map],F=[],E=[],LG=new Map;// planes: 0 directors, 1 films, 2 cast
 const mk=(t,name)=>({t,name,i:N.length,nb:[],f:[]});
 const person=(t,name)=>{const k=key(name);let n=M[t].get(k);if(!n){n=mk(t,nm(name));N.push(n);M[t].set(k,n)}return n};
@@ -68,7 +81,10 @@ R0.slice(1).forEach(r=>{const g=h=>ix(h)<0?'':r[ix(h)]||'';const title=nm(g('tit
  g('director').split(/[,;|]/).map(nm).filter(Boolean).forEach(x=>{const p=person(0,x);if(!f.dirs.includes(p)){f.dirs.push(p);p.f.push(f);link(fn,p)}});
  ['cast','cast1','cast2','cast3'].map(g).flatMap(s=>s.split(/[,;|]/)).map(nm).filter(Boolean).forEach(x=>{const p=person(2,x);if(!f.cast.includes(p)){f.cast.push(p);p.f.push(f);link(fn,p)}});
 });
- 
+console.log('columns:',hd,'films:',F.length,'directors:',N.filter(n=>n.t==0).length,'cast:',N.filter(n=>n.t==2).length,'links:',E.length);
+if(!F.length){$('L').innerHTML='<h1>No films found</h1>The CSV has a header row but no rows with a title.';return}
+if(!E.length)console.warn('No director/cast links. Check your CSV headers: director, cast, cast1, cast2, cast3');
+
 // ---- layout: barycentre pull + equal-area re-spread (central = well connected) ----
 let sd=7;const rnd=()=>(sd=sd*16807%2147483647)/2147483647;
 const P=[0,1,2].map(t=>N.filter(n=>n.t==t)),Rd=P.map(a=>7*Math.sqrt(a.length||1)),Rm=Math.max(...Rd),GAP=.3*Rm+40,Y=[GAP,0,-GAP];
@@ -76,40 +92,41 @@ N.forEach(n=>{const a=rnd()*6.283,r=Math.sqrt(rnd());n.u=Math.cos(a)*r;n.v=Math.
 for(let it=0;it<40;it++){N.forEach(n=>{let a=0,b=0;n.nb.forEach(m=>{a+=m.u;b+=m.v});n.tu=n.nb.length?a/n.nb.length:n.u;n.tv=n.nb.length?b/n.nb.length:n.v});
  P.forEach(a=>{a.sort((x,y)=>Math.hypot(x.tu,x.tv)-Math.hypot(y.tu,y.tv));a.forEach((n,i)=>{const r=Math.sqrt((i+.5)/a.length),an=Math.atan2(n.tv,n.tu);n.u=Math.cos(an)*r;n.v=Math.sin(an)*r})})}
 N.forEach(n=>{n.x=n.u*Rd[n.t];n.z=n.v*Rd[n.t];n.y=Y[n.t]});
-console.log('columns:',hd,'films:',F.length,'directors:',P[0].length,'cast:',P[2].length);
 
- // ---- scene ----
+// ---- scene ----
 const sc=new THREE.Scene(),cam=new THREE.PerspectiveCamera(50,innerWidth/innerHeight,.5,6000),ren=new THREE.WebGLRenderer({antialias:true});
 ren.setSize(innerWidth,innerHeight);ren.setPixelRatio(Math.min(devicePixelRatio,2));document.body.prepend(ren.domElement);
 const G=new THREE.Group();sc.add(G);
 const im=new THREE.InstancedMesh(new THREE.SphereGeometry(2.2,10,8),new THREE.MeshBasicMaterial(),N.length),m4=new THREE.Matrix4(),col=new THREE.Color();
 const base=N.map(n=>new THREE.Color(n.t==1?0xffc83d:0xff6b5e));
-N.forEach((n,i)=>{m4.setPosition(n.x,n.y,n.z);im.setMatrixAt(i,m4)});G.add(im);
+N.forEach((n,i)=>{m4.setPosition(n.x,n.y,n.z);im.setMatrixAt(i,m4)});
+im.frustumCulled=false;G.add(im);
 const pos=new Float32Array(E.length*6),lc=new Float32Array(E.length*6).fill(.5);
 E.forEach((e,k)=>{const a=N[e[0]],b=N[e[1]];pos.set([a.x,a.y,a.z,b.x,b.y,b.z],k*6)});
 const lg=new THREE.BufferGeometry();lg.setAttribute('position',new THREE.BufferAttribute(pos,3));lg.setAttribute('color',new THREE.BufferAttribute(lc,3));
-im.frustumCulled=false;G.add(new THREE.LineSegments(lg,new THREE.LineBasicMaterial({vertexColors:true})));
+const ls0=new THREE.LineSegments(lg,new THREE.LineBasicMaterial({vertexColors:true}));ls0.frustumCulled=false;G.add(ls0);
 let hi=-1;
 function paint(){const s=new Set(hi<0?[]:[hi,...N[hi].nb.map(m=>m.i)]);
  N.forEach((n,i)=>{col.copy(base[i]).multiplyScalar(hi<0||s.has(i)?1:.18);im.setColorAt(i,col)});im.instanceColor.needsUpdate=true;
  E.forEach((e,k)=>{const v=hi<0?.5:(e[0]==hi||e[1]==hi?1:.07);lc.fill(v,k*6,k*6+6)});lg.attributes.color.needsUpdate=true}
 paint();
- 
+
 // ---- camera moves ----
-const Dfit=Rm*1.15/(Math.tan(25*Math.PI/180)*Math.max(1,innerWidth/innerHeight)),V3=THREE.Vector3;let T=null;
+const V3=THREE.Vector3;let T=null,Dfit=0;
+const fit=()=>{Dfit=Rm*1.5/(Math.tan(25*Math.PI/180)*Math.max(.3,innerWidth/innerHeight))};fit();
 const go=(q,gp,cp)=>{T={q0:G.quaternion.clone(),g0:G.position.clone(),c0:cam.position.clone(),q,gp,cp,t:0}};
 const home=()=>go(new THREE.Quaternion().setFromEuler(new THREE.Euler(.35,0,0)),new V3(),new V3(0,0,Dfit));
 G.quaternion.setFromEuler(new THREE.Euler(.35,0,0));cam.position.set(0,0,Dfit);
 function tween(){if(!T)return;T.t=Math.min(1,T.t+.03);const e=T.t*T.t*(3-2*T.t);G.quaternion.copy(T.q0).slerp(T.q,e);G.position.lerpVectors(T.g0,T.gp,e);cam.position.lerpVectors(T.c0,T.cp,e);if(T.t==1)T=null}
 const fly=n=>go(G.quaternion.clone(),new V3(n.x,n.y,n.z).applyQuaternion(G.quaternion).negate(),new V3(0,0,60));
 $('B').onclick=home;
- 
+
 // ---- panels ----
-const row=(k,a,b='')=>`<div class="r" data-k="${k}"><span>${esc(a)}</span><span>${esc(b)}</span></div>`;
-const rec=fs=>rank(fs.filter(f=>f.n),f=>f.n,f=>f.title).map(f=>row('n'+f.node.i,f.title,f.y)).join('')||'<div style="opacity:.6">None dated yet</div>';
+const row=(k,a,b='')=>`<div class="r" data-k="${esc(k)}"><span>${esc(a)}</span><span>${esc(b)}</span></div>`;
+const rec=fs=>rank(fs.filter(f=>f.n),f=>f.n,f=>f.title).slice(0,10).map(f=>row('n'+f.node.i,f.title,f.y)).join('')||'<div style="opacity:.6">None dated yet</div>';
 let all=false;
-function left(){const ls=[...LG.values()].sort((a,b)=>b.fs.length-a.fs.length||a.name.localeCompare(b.name)),sh=all?ls:top(ls,l=>l.fs.length,l=>l.name);
- const tp=(t)=>top(P[t],n=>n.f.length,n=>n.name).map(n=>row('n'+n.i,n.name,n.f.length)).join('');
+function left(){const ls=[...LG.values()].sort((a,b)=>b.fs.length-a.fs.length||a.name.localeCompare(b.name)),sh=all?ls:rank(ls,l=>l.fs.length,l=>l.name);
+ const tp=(t)=>rank(P[t],n=>n.f.length,n=>n.name).slice(0,10).map(n=>row('n'+n.i,n.name,n.f.length)).join('');
  $('L').innerHTML=`<h1>${esc(CFG.title)}</h1><div class="big">${F.length}</div><div>Films watched</div>
  <h2>Most recent releases watched</h2>${rec(F)}
  <h2>Languages</h2>${sh.map(l=>row('l'+l.k,l.name,l.fs.length)).join('')}${ls.length>sh.length||all?`<div class="r" data-k="more"><span>${all?'See less':'See all '+ls.length}</span></div>`:''}
@@ -126,13 +143,13 @@ function lang(k){hi=-1;paint();const l=LG.get(k);right(`<h1>${esc(l.name)}</h1><
 document.addEventListener('click',e=>{const r=e.target.closest('[data-k]');if(!r)return;const k=r.dataset.k;
  if(k=='more'){all=!all;left()}else if(k=='x')clr();else if(k[0]=='l')lang(k.slice(1));else sel(+k.slice(1),true);
  if(r.closest('#res')){$('res').innerHTML='';$('q').value=''}});
- 
+
 // ---- search ----
 $('q').oninput=e=>{const q=nz(e.target.value.trim());if(!q){$('res').innerHTML='';return}
  const g=(h,a)=>a.length?`<h2>${h}</h2>`+a.slice(0,8).join(''):'';
  $('res').innerHTML=g('Films',F.filter(f=>nz(f.title).includes(q)).map(f=>row('n'+f.node.i,f.title,f.y)))+g('Directors',P[0].filter(n=>nz(n.name).includes(q)).map(n=>row('n'+n.i,n.name)))+g('Cast',P[2].filter(n=>nz(n.name).includes(q)).map(n=>row('n'+n.i,n.name)))+g('Languages',[...LG.values()].filter(l=>nz(l.name).includes(q)).map(l=>row('l'+l.k,l.name)))};
 
- // ---- input: drag rotates model, right/shift-drag pans, wheel flies toward cursor ----
+// ---- input: drag rotates model, right/shift-drag pans, wheel flies toward cursor ----
 const rc=new THREE.Raycaster(),mo=new THREE.Vector2(),cv=ren.domElement;let dn=null;
 const ray=(x,y)=>{mo.set(x/innerWidth*2-1,-(y/innerHeight)*2+1);rc.setFromCamera(mo,cam)};
 cv.oncontextmenu=e=>e.preventDefault();
@@ -140,12 +157,12 @@ cv.onpointerdown=e=>{dn={x:e.clientX,y:e.clientY,x0:e.clientX,y0:e.clientY,pan:e
 cv.onpointermove=e=>{if(!dn)return;const dx=e.clientX-dn.x,dy=e.clientY-dn.y;dn.x=e.clientX;dn.y=e.clientY;if(Math.hypot(e.clientX-dn.x0,e.clientY-dn.y0)>5)dn.mv=1;if(!dn.mv)return;
  if(dn.pan){const k=cam.position.distanceTo(G.position)*.0016;G.position.x+=dx*k;G.position.y-=dy*k}
  else{const qy=new THREE.Quaternion().setFromAxisAngle(new V3(0,1,0),dx*.005),qx=new THREE.Quaternion().setFromAxisAngle(new V3(1,0,0),dy*.005);G.quaternion.premultiply(qy).premultiply(qx)}};
-cv.onpointerup=e=>{if(dn&&!dn.mv){ray(e.clientX,e.clientY);const h=rc.intersectObject(im)[0];h?sel(h.instanceId,false):clr()}dn=null};
+cv.onpointerup=e=>{if(dn&&!dn.mv){cam.updateMatrixWorld();G.updateMatrixWorld();ray(e.clientX,e.clientY);const h=rc.intersectObject(im)[0];h?sel(h.instanceId,false):clr()}dn=null};
 addEventListener('wheel',e=>{if(e.target.closest('.p,#S'))return;e.preventDefault();T=null;ray(e.clientX,e.clientY);cam.position.addScaledVector(rc.ray.direction,-e.deltaY*.6);
  cam.position.z=Math.min(G.position.z+Dfit*1.05,Math.max(G.position.z-Rm-30,cam.position.z))},{passive:false});
-addEventListener('resize',()=>{cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();ren.setSize(innerWidth,innerHeight)});
+addEventListener('resize',()=>{cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();ren.setSize(innerWidth,innerHeight);fit()});
 
- // ---- labels: nearest 160 dots, fading with distance; layer names at plane edges ----
+// ---- labels: nearest 160 dots, fading with distance; layer names at plane edges ----
 const lb=[...Array(160)].map(()=>{const d=document.createElement('div');d.className='lb';$('lbs').append(d);return d});
 const ly=['Directors','Movies','Cast'].map(t=>{const d=document.createElement('div');d.className='lb ly';d.textContent=t;$('lbs').append(d);return d});
 const lv=N.map(n=>new V3(n.x,n.y,n.z)),w=new V3(),ds=new Float32Array(N.length),idx=N.map((_,i)=>i);
@@ -159,7 +176,7 @@ function labels(){cam.updateMatrixWorld();G.updateMatrixWorld();
  ly.forEach((el,t)=>{w.set(Rd[t]+14,Y[t],0).applyMatrix4(G.matrixWorld).project(cam);place(el,(w.x+1)/2*innerWidth,(1-w.y)/2*innerHeight,w.z>1?0:1)})}
 (function loop(){requestAnimationFrame(loop);tween();labels();ren.render(sc,cam)})();
 }
- 
+
 </script>
 </body>
 </html>
