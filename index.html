@@ -74,7 +74,7 @@ const N=[],M=[new Map,new Map,new Map],F=[],E=[],LG=new Map;// planes: 0 directo
 const mk=(t,name)=>({t,name,i:N.length,nb:[],f:[]});
 const person=(t,name)=>{const k=key(name);let n=M[t].get(k);if(!n){n=mk(t,nm(name));N.push(n);M[t].set(k,n)}return n};
 const link=(a,b)=>{a.nb.push(b);b.nb.push(a);E.push([a.i,b.i])};
-R0.slice(1).forEach(r=>{const g=h=>ix(h)<0?'':r[ix(h)]||'';const title=nm(g('title'));if(!title)return;
+R0.slice(1).forEach(r=>{const g=h=>ix(h)<0?'':r[ix(h)]||'';const title=nm(g('title')||g('name'));if(!title)return;
  const d=pd(g('year')),lang=nm(g('language')),fn=mk(1,title),f={title,y:d?d.y:nm(g('year')),n:d?d.n:0,lang,node:fn,dirs:[],cast:[]};
  fn.film=f;N.push(fn);F.push(f);
  if(lang){const k=key(lang);if(!LG.has(k))LG.set(k,{name:lang,k,fs:[]});LG.get(k).fs.push(f)}
@@ -101,19 +101,19 @@ const im=new THREE.InstancedMesh(new THREE.SphereGeometry(2.2,10,8),new THREE.Me
 const base=N.map(n=>new THREE.Color(n.t==1?0xffc83d:0xff6b5e));
 N.forEach((n,i)=>{m4.setPosition(n.x,n.y,n.z);im.setMatrixAt(i,m4)});
 im.frustumCulled=false;G.add(im);
-const pos=new Float32Array(E.length*6),lc=new Float32Array(E.length*6).fill(.5);
+const pos=new Float32Array(E.length*6),lc=new Float32Array(E.length*6).fill(.28);
 E.forEach((e,k)=>{const a=N[e[0]],b=N[e[1]];pos.set([a.x,a.y,a.z,b.x,b.y,b.z],k*6)});
 const lg=new THREE.BufferGeometry();lg.setAttribute('position',new THREE.BufferAttribute(pos,3));lg.setAttribute('color',new THREE.BufferAttribute(lc,3));
 const ls0=new THREE.LineSegments(lg,new THREE.LineBasicMaterial({vertexColors:true}));ls0.frustumCulled=false;G.add(ls0);
 let hi=-1;
 function paint(){const s=new Set(hi<0?[]:[hi,...N[hi].nb.map(m=>m.i)]);
  N.forEach((n,i)=>{col.copy(base[i]).multiplyScalar(hi<0||s.has(i)?1:.18);im.setColorAt(i,col)});im.instanceColor.needsUpdate=true;
- E.forEach((e,k)=>{const v=hi<0?.5:(e[0]==hi||e[1]==hi?1:.07);lc.fill(v,k*6,k*6+6)});lg.attributes.color.needsUpdate=true}
+ E.forEach((e,k)=>{const v=hi<0?.28:(e[0]==hi||e[1]==hi?1:.07);lc.fill(v,k*6,k*6+6)});lg.attributes.color.needsUpdate=true}
 paint();
 
 // ---- camera moves ----
 const V3=THREE.Vector3;let T=null,Dfit=0;
-const fit=()=>{Dfit=Rm*1.5/(Math.tan(25*Math.PI/180)*Math.max(.3,innerWidth/innerHeight))};fit();
+const fit=()=>{Dfit=Rm*2.1/(Math.tan(25*Math.PI/180)*Math.max(.3,innerWidth/innerHeight))};fit();
 const go=(q,gp,cp)=>{T={q0:G.quaternion.clone(),g0:G.position.clone(),c0:cam.position.clone(),q,gp,cp,t:0}};
 const home=()=>go(new THREE.Quaternion().setFromEuler(new THREE.Euler(.35,0,0)),new V3(),new V3(0,0,Dfit));
 G.quaternion.setFromEuler(new THREE.Euler(.35,0,0));cam.position.set(0,0,Dfit);
