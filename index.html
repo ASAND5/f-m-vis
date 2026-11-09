@@ -69,7 +69,7 @@ function init(txt){
 const R0=csv(txt.replace(/^\uFEFF/,''));
 if(!R0.length)throw new Error('The CSV file is empty');
 const hd=R0[0].map(h=>h.trim().toLowerCase()),ix=h=>hd.indexOf(h);
-if(ix('title')<0)throw new Error('No "title" column found. Columns seen: '+hd.join(' | '));
+if(ix('title')<0&&ix('name')<0)throw new Error('No "title" or "name" column found. Columns seen: '+hd.join(' | '));
 const N=[],M=[new Map,new Map,new Map],F=[],E=[],LG=new Map;// planes: 0 directors, 1 films, 2 cast
 const mk=(t,name)=>({t,name,i:N.length,nb:[],f:[]});
 const person=(t,name)=>{const k=key(name);let n=M[t].get(k);if(!n){n=mk(t,nm(name));N.push(n);M[t].set(k,n)}return n};
