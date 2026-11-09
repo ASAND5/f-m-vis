@@ -8,7 +8,7 @@
 :root{--g:rgba(120,120,125,.4)}
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;background:#000;color:#fff;font:14px/1.35 "Helvetica Neue",Helvetica,Arial,sans-serif;overflow:hidden}
-canvas{display:block}
+canvas{display:block;touch-action:none}
 .p{position:fixed;top:5px;bottom:5px;width:300px;padding:22px;border-radius:14px;background:var(--g);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);overflow:auto;z-index:5}
 #L{left:5px}
 #R{right:5px;bottom:auto;max-height:calc(100% - 10px);transform:translateX(120%);transition:transform .35s}
@@ -47,10 +47,13 @@ const nm=s=>(s||'').trim().replace(/\s+/g,' '),key=s=>nm(s).toLowerCase();
 const nz=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 function csv(t){const R=[];let r=[],c='',q=0;for(let i=0;i<t.length;i++){const h=t[i];if(q){if(h=='"'){if(t[i+1]=='"'){c+='"';i++}else q=0}else c+=h}else if(h=='"')q=1;else if(h==','){r.push(c);c=''}else if(h=='\n'||h=='\r'){if(h=='\r'&&t[i+1]=='\n')i++;r.push(c);c='';R.push(r);r=[]}else c+=h}if(c||r.length){r.push(c);R.push(r)}return R.filter(x=>x.join('').trim())}
 function pd(s){s=(s||'').trim();let m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);if(m)return{y:m[3],n:+m[3]*1e4+m[2]*100+ +m[1]};m=s.match(/^\d{4}$/);return m?{y:s,n:+s*1e4}:null}
-const top=(a,c,f)=>{a=[...a].sort((x,y)=>c(y)-c(x)||f(x).localeCompare(f(y)));const t=a[2]?c(a[2]):0;return a.filter(x=>c(x)>=t)};
+const rank=(a,c,f)=>{a=[...a].sort((x,y)=>c(y)-c(x)||f(x).localeCompare(f(y)));const t=a[2]?c(a[2]):0;return a.filter(x=>c(x)>=t)};
 const $=id=>document.getElementById(id);$('q').placeholder=CFG.ph;
 
-fetch(CFG.file).then(r=>{if(!r.ok)throw 0;return r.text()}).then(init).catch(()=>{$('L').innerHTML='<h1>films.csv not found</h1>Put films.csv next to index.html and open this page through a web server (or GitHub Pages).'});
+fetch(CFG.file)
+ .then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.text()})
+ .then(init)
+ .catch(err=>{console.error(err);$('L').innerHTML='<h1>Could not load</h1>'+esc(String(err.message||err))+'<br><br>Expected <b>'+esc(CFG.file)+'</b> next to index.html, served over http(s).'});
 
 function init(txt){
 const R0=csv(txt.replace(/^\uFEFF/,'')),hd=R0[0].map(h=>h.trim().toLowerCase()),ix=h=>hd.indexOf(h);
@@ -62,8 +65,8 @@ R0.slice(1).forEach(r=>{const g=h=>ix(h)<0?'':r[ix(h)]||'';const title=nm(g('tit
  const d=pd(g('year')),lang=nm(g('language')),fn=mk(1,title),f={title,y:d?d.y:nm(g('year')),n:d?d.n:0,lang,node:fn,dirs:[],cast:[]};
  fn.film=f;N.push(fn);F.push(f);
  if(lang){const k=key(lang);if(!LG.has(k))LG.set(k,{name:lang,k,fs:[]});LG.get(k).fs.push(f)}
- g('director').split(',').map(nm).filter(Boolean).forEach(x=>{const p=person(0,x);if(!f.dirs.includes(p)){f.dirs.push(p);p.f.push(f);link(fn,p)}});
- ['cast','cast1','cast2','cast3'].map(g).map(nm).filter(Boolean).forEach(x=>{const p=person(2,x);if(!f.cast.includes(p)){f.cast.push(p);p.f.push(f);link(fn,p)}});
+ g('director').split(/[,;|]/).map(nm).filter(Boolean).forEach(x=>{const p=person(0,x);if(!f.dirs.includes(p)){f.dirs.push(p);p.f.push(f);link(fn,p)}});
+ ['cast','cast1','cast2','cast3'].map(g).flatMap(s=>s.split(/[,;|]/)).map(nm).filter(Boolean).forEach(x=>{const p=person(2,x);if(!f.cast.includes(p)){f.cast.push(p);p.f.push(f);link(fn,p)}});
 });
  
 // ---- layout: barycentre pull + equal-area re-spread (central = well connected) ----
@@ -73,6 +76,7 @@ N.forEach(n=>{const a=rnd()*6.283,r=Math.sqrt(rnd());n.u=Math.cos(a)*r;n.v=Math.
 for(let it=0;it<40;it++){N.forEach(n=>{let a=0,b=0;n.nb.forEach(m=>{a+=m.u;b+=m.v});n.tu=n.nb.length?a/n.nb.length:n.u;n.tv=n.nb.length?b/n.nb.length:n.v});
  P.forEach(a=>{a.sort((x,y)=>Math.hypot(x.tu,x.tv)-Math.hypot(y.tu,y.tv));a.forEach((n,i)=>{const r=Math.sqrt((i+.5)/a.length),an=Math.atan2(n.tv,n.tu);n.u=Math.cos(an)*r;n.v=Math.sin(an)*r})})}
 N.forEach(n=>{n.x=n.u*Rd[n.t];n.z=n.v*Rd[n.t];n.y=Y[n.t]});
+console.log('columns:',hd,'films:',F.length,'directors:',P[0].length,'cast:',P[2].length);
 
  // ---- scene ----
 const sc=new THREE.Scene(),cam=new THREE.PerspectiveCamera(50,innerWidth/innerHeight,.5,6000),ren=new THREE.WebGLRenderer({antialias:true});
@@ -84,7 +88,7 @@ N.forEach((n,i)=>{m4.setPosition(n.x,n.y,n.z);im.setMatrixAt(i,m4)});G.add(im);
 const pos=new Float32Array(E.length*6),lc=new Float32Array(E.length*6).fill(.5);
 E.forEach((e,k)=>{const a=N[e[0]],b=N[e[1]];pos.set([a.x,a.y,a.z,b.x,b.y,b.z],k*6)});
 const lg=new THREE.BufferGeometry();lg.setAttribute('position',new THREE.BufferAttribute(pos,3));lg.setAttribute('color',new THREE.BufferAttribute(lc,3));
-G.add(new THREE.LineSegments(lg,new THREE.LineBasicMaterial({vertexColors:true})));
+im.frustumCulled=false;G.add(new THREE.LineSegments(lg,new THREE.LineBasicMaterial({vertexColors:true})));
 let hi=-1;
 function paint(){const s=new Set(hi<0?[]:[hi,...N[hi].nb.map(m=>m.i)]);
  N.forEach((n,i)=>{col.copy(base[i]).multiplyScalar(hi<0||s.has(i)?1:.18);im.setColorAt(i,col)});im.instanceColor.needsUpdate=true;
@@ -102,7 +106,7 @@ $('B').onclick=home;
  
 // ---- panels ----
 const row=(k,a,b='')=>`<div class="r" data-k="${k}"><span>${esc(a)}</span><span>${esc(b)}</span></div>`;
-const rec=fs=>top(fs.filter(f=>f.n),f=>f.n,f=>f.title).map(f=>row('n'+f.node.i,f.title,f.y)).join('')||'<div style="opacity:.6">None dated yet</div>';
+const rec=fs=>rank(fs.filter(f=>f.n),f=>f.n,f=>f.title).map(f=>row('n'+f.node.i,f.title,f.y)).join('')||'<div style="opacity:.6">None dated yet</div>';
 let all=false;
 function left(){const ls=[...LG.values()].sort((a,b)=>b.fs.length-a.fs.length||a.name.localeCompare(b.name)),sh=all?ls:top(ls,l=>l.fs.length,l=>l.name);
  const tp=(t)=>top(P[t],n=>n.f.length,n=>n.name).map(n=>row('n'+n.i,n.name,n.f.length)).join('');
@@ -146,7 +150,7 @@ const lb=[...Array(160)].map(()=>{const d=document.createElement('div');d.classN
 const ly=['Directors','Movies','Cast'].map(t=>{const d=document.createElement('div');d.className='lb ly';d.textContent=t;$('lbs').append(d);return d});
 const lv=N.map(n=>new V3(n.x,n.y,n.z)),w=new V3(),ds=new Float32Array(N.length),idx=N.map((_,i)=>i);
 const place=(el,x,y,o)=>{el.style.opacity=o;el.style.transform=`translate(${x}px,${y}px) translate(-50%,-130%)`};
-function labels(){G.updateMatrixWorld();
+function labels(){cam.updateMatrixWorld();G.updateMatrixWorld();
  for(let i=0;i<N.length;i++)ds[i]=w.copy(lv[i]).applyMatrix4(G.matrixWorld).distanceTo(cam.position);
  idx.sort((a,b)=>ds[a]-ds[b]);
  lb.forEach((el,k)=>{const i=idx[k],d=ds[i];if(i===undefined){el.style.opacity=0;return}w.copy(lv[i]).applyMatrix4(G.matrixWorld).project(cam);
