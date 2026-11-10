@@ -18,7 +18,7 @@ h1{font-size:17px;margin:0 0 16px;font-weight:600}
 h2{font-size:12px;margin:22px 0 6px;opacity:.65;font-weight:500}
 .r{display:flex;justify-content:space-between;gap:10px;padding:3px 0;cursor:pointer}
 .r:hover{opacity:.65}
-.q{margin-top:14px;opacity:.7;font-size:13px}
+.q{margin-top:26px;opacity:.7;font-size:13px}
 #S{position:fixed;top:12px;left:50%;transform:translateX(-50%);width:max(200px,min(420px,calc(100% - 660px)));z-index:6}
 #S input{width:100%;padding:10px 14px;border-radius:12px;border:0;background:var(--g);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);color:#fff;font:inherit;outline:0}
 #S input::placeholder{color:#ddd}
@@ -47,17 +47,6 @@ h2{font-size:12px;margin:22px 0 6px;opacity:.65;font-weight:500}
 <script>
 // ---- edit these ----
 const CFG={title:"Abrar's Watched",quote:"Was never meant to be a cinephile but watched too many films anyways.",ph:"Search films, directors, cast, languages",file:"watched.csv"};
-
-// ---- look & feel (edit these) ----
-const STYLE={
- dirs     : 0xff6b5e,   // director dots
- films    : 0xffc83d,   // film dots
- cast     : 0x5ec8ff,   // cast dots
- line     : 0xc9d6ea,   // line tint
- lineIdle : .45,        // line brightness when nothing is selected (0 = invisible, 1 = full)
- lineFaded: .06,        // line brightness for unrelated lines when something is selected
- seg      : [28,18]     // dot smoothness: [around, top-to-bottom]. Higher = rounder, slower
-};
 // --------------------
 document.title=CFG.title;
 const esc=s=>String(s).replace(/[&<>"]/g,c=>'&#'+c.charCodeAt(0)+';');
@@ -108,13 +97,12 @@ N.forEach(n=>{n.x=n.u*Rd[n.t];n.z=n.v*Rd[n.t];n.y=Y[n.t]});
 const sc=new THREE.Scene(),cam=new THREE.PerspectiveCamera(50,innerWidth/innerHeight,.5,6000),ren=new THREE.WebGLRenderer({antialias:true});
 ren.setSize(innerWidth,innerHeight);ren.setPixelRatio(Math.min(devicePixelRatio,2));document.body.prepend(ren.domElement);
 const G=new THREE.Group();sc.add(G);
-const im=new THREE.InstancedMesh(new THREE.SphereGeometry(2.2,STYLE.seg[0],STYLE.seg[1]),new THREE.MeshBasicMaterial(),N.length),m4=new THREE.Matrix4(),col=new THREE.Color();
-const base=N.map(n=>new THREE.Color([STYLE.dirs,STYLE.films,STYLE.cast][n.t]));
-const LINE=new THREE.Color(STYLE.line);
+const im=new THREE.InstancedMesh(new THREE.SphereGeometry(2.2,10,8),new THREE.MeshBasicMaterial(),N.length),m4=new THREE.Matrix4(),col=new THREE.Color();
+const base=N.map(n=>new THREE.Color(n.t==1?0xffc83d:0xff6b5e));
 N.forEach((n,i)=>{m4.setPosition(n.x,n.y,n.z);im.setMatrixAt(i,m4)});
 im.frustumCulled=false;G.add(im);
 const pos=new Float32Array(E.length*6),lc=new Float32Array(E.length*6).fill(.28);
-E.forEach((e,k)=>{const v=hi<0?STYLE.lineIdle:(e[0]==hi||e[1]==hi?1:STYLE.lineFaded);for(let j=0;j<2;j++){const o=k*6+j*3;lc[o]=LINE.r*v;lc[o+1]=LINE.g*v;lc[o+2]=LINE.b*v}});
+E.forEach((e,k)=>{const a=N[e[0]],b=N[e[1]];pos.set([a.x,a.y,a.z,b.x,b.y,b.z],k*6)});
 const lg=new THREE.BufferGeometry();lg.setAttribute('position',new THREE.BufferAttribute(pos,3));lg.setAttribute('color',new THREE.BufferAttribute(lc,3));
 const ls0=new THREE.LineSegments(lg,new THREE.LineBasicMaterial({vertexColors:true}));ls0.frustumCulled=false;G.add(ls0);
 let hi=-1;
@@ -139,10 +127,10 @@ const rec=fs=>rank(fs.filter(f=>f.n),f=>f.n,f=>f.title).slice(0,10).map(f=>row('
 let all=false;
 function left(){const ls=[...LG.values()].sort((a,b)=>b.fs.length-a.fs.length||a.name.localeCompare(b.name)),sh=all?ls:rank(ls,l=>l.fs.length,l=>l.name);
  const tp=(t)=>rank(P[t],n=>n.f.length,n=>n.name).slice(0,10).map(n=>row('n'+n.i,n.name,n.f.length)).join('');
- $('L').innerHTML=`<h1>${esc(CFG.title)}</h1><div class="big">${F.length}</div><div>Films watched</div><div class="q">${esc(CFG.quote)}</div>
+ $('L').innerHTML=`<h1>${esc(CFG.title)}</h1><div class="big">${F.length}</div><div>Films watched</div>
  <h2>Most recent releases watched</h2>${rec(F)}
  <h2>Languages</h2>${sh.map(l=>row('l'+l.k,l.name,l.fs.length)).join('')}${ls.length>sh.length||all?`<div class="r" data-k="more"><span>${all?'See less':'See all '+ls.length}</span></div>`:''}
- <h2>Most watched directors</h2>${tp(0)}<h2>Most watched actors</h2>${tp(2)}`}
+ <h2>Most watched directors</h2>${tp(0)}<h2>Most watched actors</h2>${tp(2)}<div class="q">${esc(CFG.quote)}</div>`}
 left();
 const pl=(n,w)=>`${n} ${w}${n==1?'':'s'}`;
 function right(h){$('R').innerHTML=`<div class="r" data-k="x" style="float:right">×</div>`+h;$('R').classList.add('on')}
