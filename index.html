@@ -1,11 +1,8 @@
 <!doctype html>
-<html lang="en">
- <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Abrar's Watched</title>
-
 <style>
-:root{--g:rgba(120,120,125,.4)}
+:root{--g:rgba(120,120,125,.4);--bh:38vh}
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;background:#000;color:#fff;font:14px/1.35 "Helvetica Neue",Helvetica,Arial,sans-serif;overflow:hidden}
 canvas{display:block;touch-action:none}
@@ -18,47 +15,69 @@ h1{font-size:17px;margin:0 0 16px;font-weight:600}
 h2{font-size:12px;margin:22px 0 6px;opacity:.65;font-weight:500}
 .r{display:flex;justify-content:space-between;gap:10px;padding:3px 0;cursor:pointer}
 .r:hover{opacity:.65}
-.q{margin-top:26px;opacity:.7;font-size:13px}
+.q{margin-top:14px;opacity:.7;font-size:13px}
 #S{position:fixed;top:12px;left:50%;transform:translateX(-50%);width:max(200px,min(420px,calc(100% - 660px)));z-index:6}
 #S input{width:100%;padding:10px 14px;border-radius:12px;border:0;background:var(--g);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);color:#fff;font:inherit;outline:0}
 #S input::placeholder{color:#ddd}
 #res{margin-top:4px;border-radius:12px;background:rgba(90,90,95,.75);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);max-height:60vh;overflow:auto}
 #res h2{margin:8px 14px 2px}
 #res .r{padding:5px 14px}
-#B{position:fixed;left:315px;bottom:12px;z-index:5;padding:9px 14px;border:0;border-radius:10px;background:var(--g);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);color:#fff;font:inherit;cursor:pointer}
+.bt{position:fixed;bottom:12px;z-index:5;padding:9px 14px;border:0;border-radius:10px;background:var(--g);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);color:#fff;font:inherit;cursor:pointer}
+#B{left:315px}
+#Z{position:fixed;right:12px;bottom:12px;z-index:5;display:flex;gap:8px;transition:right .3s}
+#Z .bt{position:static;width:40px;padding:9px 0;font-size:18px;line-height:1}
+#Z.sh{right:315px}
 .lb{position:fixed;left:0;top:0;font-size:11px;white-space:nowrap;pointer-events:none;text-shadow:0 0 4px #000,0 0 2px #000}
 .ly{font-size:13px;font-weight:600}
 @media (max-width:900px){
  #S{width:calc(100% - 24px)}
- .p{top:58px;width:min(300px,calc(50% - 10px));padding:14px}
- #R{max-height:calc(100% - 63px)}
- #B{left:50%;transform:translateX(-50%)}
+ .p{top:auto;bottom:5px;left:5px;right:5px;width:auto;height:var(--bh);padding:14px}
+ #L{display:flex;gap:28px;overflow-x:auto;overflow-y:hidden}
+ #L .t,#L .o{flex:0 0 min(260px,72vw);max-height:100%;overflow-y:auto}
+ #R{max-height:none;transform:translateY(120%)}
+ #R.on{transform:none}
+ .det #L{display:none}
+ #B{left:12px;bottom:calc(var(--bh) + 12px)}
+ #Z{right:12px;bottom:calc(var(--bh) + 12px)}
 }
-</style>
-</head>
-
-<body>
+</style></head><body>
 <div id="L" class="p"></div><div id="R" class="p"></div>
 <div id="S"><input id="q" autocomplete="off"><div id="res"></div></div>
-<button id="B">Recalibrate</button><div id="lbs"></div>
-
+<button id="B" class="bt">Recalibrate</button>
+<div id="Z"><button id="zi" class="bt" aria-label="Zoom in">+</button><button id="zo" class="bt" aria-label="Zoom out">&minus;</button></div>
+<div id="lbs"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-
 <script>
 // ---- edit these ----
-const CFG={title:"Abrar's Watched",quote:"Was never meant to be a cinephile but watched too many films anyways.",ph:"Search films, directors, cast, languages",file:"watched.csv"};
+const CFG={
+ title:"Abrar's Watched",
+ quote:"Was never meant to be a cinephile but watched too many films anyways.",
+ ph:"Search films, directors, cast, languages",
+ file:"watched.csv",
+ // FONT: paste a free font link + family name (Google Fonts / Fontshare / Bunny Fonts). Leave fontUrl empty to use the default.
+ // e.g. fontUrl:"https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap", font:"'Inter',sans-serif"
+ fontUrl:"",
+ font:"'Helvetica Neue',Helvetica,Arial,sans-serif",
+ // COLORS and SPHERE: radius, width segments, height segments (higher = rounder)
+ movieColor:"#ffc83d",
+ peopleColor:"#ff6b5e",
+ sphere:[2.2,24,16]
+};
 // --------------------
 document.title=CFG.title;
+if(CFG.fontUrl){const l=document.createElement('link');l.rel='stylesheet';l.href=CFG.fontUrl;document.head.append(l)}
+document.body.style.fontFamily=CFG.font;
 const esc=s=>String(s).replace(/[&<>"]/g,c=>'&#'+c.charCodeAt(0)+';');
 const nm=s=>(s||'').trim().replace(/\s+/g,' '),key=s=>nm(s).toLowerCase();
 const nz=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 function csv(t){const R=[];let r=[],c='',q=0;for(let i=0;i<t.length;i++){const h=t[i];if(q){if(h=='"'){if(t[i+1]=='"'){c+='"';i++}else q=0}else c+=h}else if(h=='"')q=1;else if(h==','){r.push(c);c=''}else if(h=='\n'||h=='\r'){if(h=='\r'&&t[i+1]=='\n')i++;r.push(c);c='';R.push(r);r=[]}else c+=h}if(c||r.length){r.push(c);R.push(r)}return R.filter(x=>x.join('').trim())}
 function pd(s){s=(s||'').trim();
- let m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);if(m)return{y:m[3],n:+m[3]*1e4+m[2]*100+ +m[1]};      // dd/mm/yyyy
- m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);if(m)return{y:m[1],n:+m[1]*1e4+m[2]*100+ +m[3]};            // yyyy-mm-dd
- m=s.match(/^\d{4}$/);return m?{y:s,n:+s*1e4}:null}                                                    // yyyy
+ let m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);if(m)return{y:m[3],n:+m[3]*1e4+m[2]*100+ +m[1]};
+ m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);if(m)return{y:m[1],n:+m[1]*1e4+m[2]*100+ +m[3]};
+ m=s.match(/^\d{4}$/);return m?{y:s,n:+s*1e4}:null}
 const rank=(a,c,f)=>{a=[...a].sort((x,y)=>c(y)-c(x)||f(x).localeCompare(f(y)));const t=a[2]?c(a[2]):0;return a.filter(x=>c(x)>=t)};
 const $=id=>document.getElementById(id);$('q').placeholder=CFG.ph;
+const narrow=()=>matchMedia('(max-width:900px)').matches;
 
 fetch(CFG.file)
  .then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.text()})
@@ -85,7 +104,7 @@ console.log('columns:',hd,'films:',F.length,'directors:',N.filter(n=>n.t==0).len
 if(!F.length){$('L').innerHTML='<h1>No films found</h1>The CSV has a header row but no rows with a title.';return}
 if(!E.length)console.warn('No director/cast links. Check your CSV headers: director, cast, cast1, cast2, cast3');
 
-// ---- layout: barycentre pull + equal-area re-spread (central = well connected) ----
+// ---- layout: barycentre pull + equal-area re-spread ----
 let sd=7;const rnd=()=>(sd=sd*16807%2147483647)/2147483647;
 const P=[0,1,2].map(t=>N.filter(n=>n.t==t)),Rd=P.map(a=>7*Math.sqrt(a.length||1)),Rm=Math.max(...Rd),GAP=.3*Rm+40,Y=[GAP,0,-GAP];
 N.forEach(n=>{const a=rnd()*6.283,r=Math.sqrt(rnd());n.u=Math.cos(a)*r;n.v=Math.sin(a)*r});
@@ -97,8 +116,8 @@ N.forEach(n=>{n.x=n.u*Rd[n.t];n.z=n.v*Rd[n.t];n.y=Y[n.t]});
 const sc=new THREE.Scene(),cam=new THREE.PerspectiveCamera(50,innerWidth/innerHeight,.5,6000),ren=new THREE.WebGLRenderer({antialias:true});
 ren.setSize(innerWidth,innerHeight);ren.setPixelRatio(Math.min(devicePixelRatio,2));document.body.prepend(ren.domElement);
 const G=new THREE.Group();sc.add(G);
-const im=new THREE.InstancedMesh(new THREE.SphereGeometry(2.2,10,8),new THREE.MeshBasicMaterial(),N.length),m4=new THREE.Matrix4(),col=new THREE.Color();
-const base=N.map(n=>new THREE.Color(n.t==1?0xffc83d:0xff6b5e));
+const im=new THREE.InstancedMesh(new THREE.SphereGeometry(...CFG.sphere),new THREE.MeshBasicMaterial(),N.length),m4=new THREE.Matrix4(),col=new THREE.Color();
+const base=N.map(n=>new THREE.Color(n.t==1?CFG.movieColor:CFG.peopleColor));
 N.forEach((n,i)=>{m4.setPosition(n.x,n.y,n.z);im.setMatrixAt(i,m4)});
 im.frustumCulled=false;G.add(im);
 const pos=new Float32Array(E.length*6),lc=new Float32Array(E.length*6).fill(.28);
@@ -112,33 +131,36 @@ function paint(){const s=new Set(hi<0?[]:[hi,...N[hi].nb.map(m=>m.i)]);
 paint();
 
 // ---- camera moves ----
-const V3=THREE.Vector3;let T=null,Dfit=0;
+const V3=THREE.Vector3,dirV=new V3();let T=null,Dfit=0;
 const fit=()=>{Dfit=Rm*2.1/(Math.tan(25*Math.PI/180)*Math.max(.3,innerWidth/innerHeight))};fit();
+const cz=z=>Math.min(G.position.z+Dfit*1.05,Math.max(G.position.z-Rm-30,z));
 const go=(q,gp,cp)=>{T={q0:G.quaternion.clone(),g0:G.position.clone(),c0:cam.position.clone(),q,gp,cp,t:0}};
 const home=()=>go(new THREE.Quaternion().setFromEuler(new THREE.Euler(.35,0,0)),new V3(),new V3(0,0,Dfit));
 G.quaternion.setFromEuler(new THREE.Euler(.35,0,0));cam.position.set(0,0,Dfit);
 function tween(){if(!T)return;T.t=Math.min(1,T.t+.03);const e=T.t*T.t*(3-2*T.t);G.quaternion.copy(T.q0).slerp(T.q,e);G.position.lerpVectors(T.g0,T.gp,e);cam.position.lerpVectors(T.c0,T.cp,e);if(T.t==1)T=null}
-const fly=n=>go(G.quaternion.clone(),new V3(n.x,n.y,n.z).applyQuaternion(G.quaternion).negate(),new V3(0,0,60));
-$('B').onclick=home;
+const fly=n=>go(G.quaternion.clone(),new V3(n.x,n.y+(narrow()?-10:0),n.z).applyQuaternion(G.quaternion).negate(),new V3(0,0,60));
+const zoom=d=>{T=null;cam.getWorldDirection(dirV);cam.position.addScaledVector(dirV,d);cam.position.z=cz(cam.position.z)};
+$('B').onclick=home;$('zi').onclick=()=>zoom(60);$('zo').onclick=()=>zoom(-60);
 
 // ---- panels ----
 const row=(k,a,b='')=>`<div class="r" data-k="${esc(k)}"><span>${esc(a)}</span><span>${esc(b)}</span></div>`;
 const rec=fs=>rank(fs.filter(f=>f.n),f=>f.n,f=>f.title).slice(0,10).map(f=>row('n'+f.node.i,f.title,f.y)).join('')||'<div style="opacity:.6">None dated yet</div>';
 let all=false;
 function left(){const ls=[...LG.values()].sort((a,b)=>b.fs.length-a.fs.length||a.name.localeCompare(b.name)),sh=all?ls:rank(ls,l=>l.fs.length,l=>l.name);
- const tp=(t)=>rank(P[t],n=>n.f.length,n=>n.name).slice(0,10).map(n=>row('n'+n.i,n.name,n.f.length)).join('');
- $('L').innerHTML=`<h1>${esc(CFG.title)}</h1><div class="big">${F.length}</div><div>Films watched</div>
- <h2>Most recent releases watched</h2>${rec(F)}
+ const tp=t=>rank(P[t],n=>n.f.length,n=>n.name).slice(0,10).map(n=>row('n'+n.i,n.name,n.f.length)).join('');
+ $('L').innerHTML=`<div class="t"><h1>${esc(CFG.title)}</h1><div class="big">${F.length}</div><div>Films watched</div><div class="q">${esc(CFG.quote)}</div></div>
+ <div class="o"><h2>Most recent releases watched</h2>${rec(F)}
  <h2>Languages</h2>${sh.map(l=>row('l'+l.k,l.name,l.fs.length)).join('')}${ls.length>sh.length||all?`<div class="r" data-k="more"><span>${all?'See less':'See all '+ls.length}</span></div>`:''}
- <h2>Most watched directors</h2>${tp(0)}<h2>Most watched actors</h2>${tp(2)}<div class="q">${esc(CFG.quote)}</div>`}
+ <h2>Most watched directors</h2>${tp(0)}<h2>Most watched actors</h2>${tp(2)}</div>`}
 left();
+const adj=()=>{const R=$('R');$('Z').classList.toggle('sh',!narrow()&&R.classList.contains('on')&&R.getBoundingClientRect().bottom>innerHeight-64)};
 const pl=(n,w)=>`${n} ${w}${n==1?'':'s'}`;
-function right(h){$('R').innerHTML=`<div class="r" data-k="x" style="float:right">×</div>`+h;$('R').classList.add('on')}
+function right(h){$('R').innerHTML=`<div class="r" data-k="x" style="float:right">×</div>`+h;$('R').scrollTop=0;$('R').classList.add('on');document.body.classList.add('det');adj()}
 function show(i){const n=N[i];
  if(n.t==1){const f=n.film;right(`<h1>${esc(f.title)}</h1><div>${esc(f.y)}${f.lang?' · '+esc(f.lang):''}</div><h2>${f.dirs.length>1?'Directors':'Director'}</h2>${f.dirs.map(p=>row('n'+p.i,p.name)).join('')}<h2>Cast</h2>${f.cast.map(p=>row('n'+p.i,p.name)).join('')}`)}
  else right(`<h1>${esc(n.name)}</h1><div>${pl(n.f.length,'film')} of ${esc(n.name)} so far</div><h2>Recent films watched</h2>${rec(n.f)}`)}
 function sel(i,f){hi=i;paint();show(i);if(f)fly(N[i])}
-function clr(){hi=-1;paint();$('R').classList.remove('on')}
+function clr(){hi=-1;paint();$('R').classList.remove('on');document.body.classList.remove('det');adj()}
 function lang(k){hi=-1;paint();const l=LG.get(k);right(`<h1>${esc(l.name)}</h1><div>${l.fs.length} ${esc(l.name)} ${l.fs.length==1?'film':'films'} watched so far</div><h2>Recent films watched</h2>${rec(l.fs)}`)}
 document.addEventListener('click',e=>{const r=e.target.closest('[data-k]');if(!r)return;const k=r.dataset.k;
  if(k=='more'){all=!all;left()}else if(k=='x')clr();else if(k[0]=='l')lang(k.slice(1));else sel(+k.slice(1),true);
@@ -158,9 +180,8 @@ cv.onpointermove=e=>{if(!dn)return;const dx=e.clientX-dn.x,dy=e.clientY-dn.y;dn.
  if(dn.pan){const k=cam.position.distanceTo(G.position)*.0016;G.position.x+=dx*k;G.position.y-=dy*k}
  else{const qy=new THREE.Quaternion().setFromAxisAngle(new V3(0,1,0),dx*.005),qx=new THREE.Quaternion().setFromAxisAngle(new V3(1,0,0),dy*.005);G.quaternion.premultiply(qy).premultiply(qx)}};
 cv.onpointerup=e=>{if(dn&&!dn.mv){cam.updateMatrixWorld();G.updateMatrixWorld();ray(e.clientX,e.clientY);const h=rc.intersectObject(im)[0];h?sel(h.instanceId,false):clr()}dn=null};
-addEventListener('wheel',e=>{if(e.target.closest('.p,#S'))return;e.preventDefault();T=null;ray(e.clientX,e.clientY);cam.position.addScaledVector(rc.ray.direction,-e.deltaY*.6);
- cam.position.z=Math.min(G.position.z+Dfit*1.05,Math.max(G.position.z-Rm-30,cam.position.z))},{passive:false});
-addEventListener('resize',()=>{cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();ren.setSize(innerWidth,innerHeight);fit()});
+addEventListener('wheel',e=>{if(e.target.closest('.p,#S'))return;e.preventDefault();T=null;ray(e.clientX,e.clientY);cam.position.addScaledVector(rc.ray.direction,-e.deltaY*.6);cam.position.z=cz(cam.position.z)},{passive:false});
+addEventListener('resize',()=>{cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();ren.setSize(innerWidth,innerHeight);fit();adj()});
 
 // ---- labels: nearest 160 dots, fading with distance; layer names at plane edges ----
 const lb=[...Array(160)].map(()=>{const d=document.createElement('div');d.className='lb';$('lbs').append(d);return d});
@@ -176,7 +197,4 @@ function labels(){cam.updateMatrixWorld();G.updateMatrixWorld();
  ly.forEach((el,t)=>{w.set(Rd[t]+14,Y[t],0).applyMatrix4(G.matrixWorld).project(cam);place(el,(w.x+1)/2*innerWidth,(1-w.y)/2*innerHeight,w.z>1?0:1)})}
 (function loop(){requestAnimationFrame(loop);tween();labels();ren.render(sc,cam)})();
 }
-
-</script>
-</body>
-</html>
+</script></body></html>
