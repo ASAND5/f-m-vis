@@ -4,7 +4,7 @@
 <style>
 :root{--g:rgba(120,120,125,.4);--bh:38vh}
 *{box-sizing:border-box}
-html,body{margin:0;height:100%;background:#000;color:#fff;font:14px/1.35 "Helvetica Neue",Helvetica,Arial,sans-serif;overflow:hidden}
+html,body{margin:0;height:100%;background:#000;color:#fff;font: 14px/1.35 "Cambria", Georgia, serif;overflow: hidden;}
 canvas{display:block;touch-action:none}
 .p{position:fixed;top:5px;bottom:5px;width:300px;padding:22px;border-radius:14px;background:var(--g);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);overflow:auto;z-index:5}
 #L{left:5px}
@@ -34,7 +34,7 @@ h2{font-size:12px;margin:22px 0 6px;opacity:.65;font-weight:500}
  .p{top:auto;bottom:5px;left:5px;right:5px;width:auto;height:var(--bh);padding:14px}
  #L{display:flex;gap:28px;overflow-x:auto;overflow-y:hidden}
  #L .t,#L .o{flex:0 0 min(260px,72vw);max-height:100%;overflow-y:auto}
- #R{max-height:none;transform:translateY(120%)}
+ #R{top:auto;bottom:5px;left:5px;right:5px;width:auto;max-height:none;transform:translateY(120%)}
  #R.on{transform:none}
  .det #L{display:none}
  #B{left:12px;bottom:calc(var(--bh) + 12px)}
@@ -57,10 +57,10 @@ const CFG={
  // FONT: paste a free font link + family name (Google Fonts / Fontshare / Bunny Fonts). Leave fontUrl empty to use the default.
  // e.g. fontUrl:"https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap", font:"'Inter',sans-serif"
  fontUrl:"",
- font:"'Helvetica Neue',Helvetica,Arial,sans-serif",
+ font:"'"Cambria", Georgia, serif",
  // COLORS and SPHERE: radius, width segments, height segments (higher = rounder)
- movieColor:"#ffc83d",
- peopleColor:"#ff6b5e",
+ movieColor:"#80b900",
+ peopleColor:"#43a4d0",
  sphere:[2.2,24,16]
 };
 // --------------------
