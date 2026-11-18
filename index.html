@@ -185,7 +185,7 @@ const CFG = {
   font: "Cambria,Caladea,Georgia,serif",
   movieColor: "#80b900",
   peopleColor: "#b5dbec",
-  sphere: [2.2, 24, 16]          // radius, width segments, height segments
+  sphere: [2.4, 24, 16]          // radius, width segments, height segments
 };
 
 // ======================= HELPERS =======================
@@ -362,7 +362,7 @@ function init(txt) {
   const rnd = () => (sd = sd * 16807 % 2147483647) / 2147483647;
 
   const P = [0, 1, 2].map(t => N.filter(n => n.t == t)); // dots per layer
-  const Rd = P.map(a => 15 * Math.sqrt(a.length || 1));  // <-- EDIT: 15 = spacing between spheres
+  const Rd = P.map(a => 30 * Math.sqrt(a.length || 1));  // <-- EDIT: 15 = spacing between spheres
   const Rm = Math.max(...Rd);
   const GAP = .3 * Rm + 40;                              // <-- EDIT: distance between the layers
   const Y = [GAP, 0, -GAP];
@@ -382,16 +382,47 @@ function init(txt) {
       n.tv = n.nb.length ? b / n.nb.length : n.v;
     });
     // spread evenly: radius by distance rank, angle by angle rank
-    P.forEach(a => {
+    //P.forEach(a => {
+      //const c = a.length;
+      //a.sort((x, y) => Math.hypot(x.tu, x.tv) - Math.hypot(y.tu, y.tv));
+      //a.forEach((p, i) => { p.rk = Math.sqrt((i + .5) / c); });
+   //   a.sort((x, y) => Math.atan2(x.tv, x.tu) - Math.atan2(y.tv, y.tu));
+     // a.forEach((p, i) => {
+      //  const an = 2 * Math.PI * (i + .5) / c;
+       // p.u = Math.cos(an) * p.rk;
+        //p.v = Math.sin(an) * p.rk;
+      //});
+    //});
+        P.forEach(a => {
       const c = a.length;
+      if (!c) return;
+      const golden = 2.399963229728653;
+
+      // 1. fixed spiral slots (radius grows with index, angle by golden angle, range -PI..PI)
+      const slots = [];
+      for (let i = 0; i < c; i++) {
+        slots.push({
+          r: Math.sqrt((i + .5) / c),
+          an: ((i * golden + Math.PI) % (2 * Math.PI)) - Math.PI
+        });
+      }
+
+      // 2. dots sorted by how central their neighbours are (closest to centre first)
       a.sort((x, y) => Math.hypot(x.tu, x.tv) - Math.hypot(y.tu, y.tv));
-      a.forEach((p, i) => { p.rk = Math.sqrt((i + .5) / c); });
-      a.sort((x, y) => Math.atan2(x.tv, x.tu) - Math.atan2(y.tv, y.tu));
-      a.forEach((p, i) => {
-        const an = 2 * Math.PI * (i + .5) / c;
-        p.u = Math.cos(an) * p.rk;
-        p.v = Math.sin(an) * p.rk;
-      });
+
+      // 3. cut into bands; inside each band, match dots to slots by angle order
+      const bands = Math.max(1, Math.round(Math.sqrt(c / 3)));
+      for (let b = 0; b < bands; b++) {
+        const lo = Math.floor(b * c / bands);
+        const up = Math.floor((b + 1) * c / bands);
+        const dots = a.slice(lo, up).sort((x, y) => Math.atan2(x.tv, x.tu) - Math.atan2(y.tv, y.tu));
+        const spots = slots.slice(lo, up).sort((x, y) => x.an - y.an);
+        dots.forEach((p, j) => {
+          p.rk = spots[j].r;
+          p.u = Math.cos(spots[j].an) * spots[j].r;
+          p.v = Math.sin(spots[j].an) * spots[j].r;
+        });
+      }
     });
   }
   N.forEach(n => {
