@@ -57,6 +57,31 @@
   }
   .r:hover { opacity: .65; }
 
+    /* ---- bottom links ---- */
+  #K {
+    position: fixed;
+    left: 50%;
+    bottom: 12px;
+    transform: translateX(-50%);
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 16px;
+    border-radius: 10px;
+    background: var(--g);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+  #K a { color: #fff; text-decoration: none; opacity: .85; }
+  #K a:hover { opacity: 1; text-decoration: underline; }
+  #K i {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #fff, #777);
+  }
+
   /* ---- search ---- */
   #S {
     position: fixed;
@@ -131,12 +156,21 @@
   }
   .ly { font-size: 13px; font-weight: 600; }
 
+    /* ---- links text (only needed if you use the "Developed by:" span version) ---- */
+  #K span { opacity: .7; }
+  #K span a { opacity: 1; }
+
+  /* ---- mid-size windows: shrink the bottom links ---- */
+  @media (max-width: 1100px) {
+    #K { font-size: 12px; padding: 7px 12px; gap: 8px; }
+  }
+
   /* ---- phones and narrow screens ---- */
   @media (max-width: 900px) {
     #S { width: calc(100% - 24px); }
     .p {
       top: auto;
-      bottom: 5px;
+      bottom: 46px;
       left: 5px;
       right: 5px;
       width: auto;
@@ -147,7 +181,7 @@
     #L .t, #L .o { flex: 0 0 min(260px, 72vw); max-height: 100%; overflow-y: auto; }
     #R {
       top: auto;
-      bottom: 5px;
+      bottom: 46px;
       left: 5px;
       right: 5px;
       width: auto;
@@ -156,8 +190,17 @@
     }
     #R.on { transform: none; }
     .det #L { display: none; }
-    #B { left: 12px; bottom: calc(var(--bh) + 12px); }
-    #Z { right: 12px; bottom: calc(var(--bh) + 12px); }
+    #B { left: 12px; bottom: calc(var(--bh) + 53px); }
+    #Z { right: 12px; bottom: calc(var(--bh) + 53px); }
+    #K {
+      bottom: 6px;
+      max-width: calc(100% - 12px);
+      flex-wrap: wrap;
+      justify-content: center;
+      font-size: 11px;
+      padding: 6px 10px;
+      gap: 8px;
+    }
   }
 </style>
 </head>
@@ -170,6 +213,11 @@
 <div id="Z">
   <button id="zi" class="bt" aria-label="Zoom in">+</button>
   <button id="zo" class="bt" aria-label="Zoom out">&minus;</button>
+<div id="K">
+  <span>Developed by: <a href="https://asand5.github.io/Portfolio/" target="_blank" rel="noopener">Md Abrar Hasin Parash</a></span>
+  <i></i>
+  <a href="https://letterboxd.com/bored_man_Ab/" target="_blank" rel="noopener">Letterboxd</a>
+</div>
 </div>
 <div id="lbs"></div>
 
