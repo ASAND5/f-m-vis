@@ -537,8 +537,11 @@ function init(txt) {
   const dirV = new V3();
   let T = null, Dfit = 0;
 
-  const fit = () => {
+    const fit = () => {
     Dfit = Rm * 2.1 / (Math.tan(25 * Math.PI / 180) * Math.max(.3, innerWidth / innerHeight));
+    cam.near = 1;
+    cam.far = Dfit * 1.05 + Rm * 2 + 500;     // always farther than the camera can ever be
+    cam.updateProjectionMatrix();
   };
   fit();
 
@@ -581,8 +584,8 @@ function init(txt) {
     cam.position.z = cz(cam.position.z);
   };
   $('B').onclick = home;
-  $('zi').onclick = () => zoom(120);
-  $('zo').onclick = () => zoom(-120);
+  $('zi').onclick = () => zoom(Dfit * .05);
+  $('zo').onclick = () => zoom(-Dfit * .05);
 
   // ---------- 5. PANELS ----------
   const row = (k, a, b = '') =>
